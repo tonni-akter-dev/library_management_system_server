@@ -25,6 +25,12 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         });
+        app.get("/homebooks", async (req, res) => {
+            const limit = 8;
+            const cursor = booksCollection.find({}).limit(limit);
+            const result = await cursor.toArray();
+            res.send(result);
+          });
 
         app.get("/allBooks/:id", async (req, res) => {
             const id = req.params.id;
@@ -33,6 +39,38 @@ async function run() {
             console.log(result);
             res.json(result);
         });
+
+        app.post("/search", async (req, res) => {
+            const { type, branch, search_field, search_text } = req.body;
+            let query = {};
+            if(branch){
+                query['library'] = branch
+            }  
+            if(type){
+                query['type'] = type
+            }
+            const cursor = await booksCollection.find(query);
+            const result = await cursor.toArray();
+            const filtered_result = result.filter(item =>{
+               
+               if(item[search_field]){
+                const field = item[search_field];
+                if(typeof field === "string" && field.toLowerCase().includes(search_text?.toLowerCase())){
+                    return true;
+                }else {
+                    return false
+                }
+               }else{
+                return false
+               }
+            })
+            console.log(filtered_result)
+            // res.json(result);
+            res.json({message:'we are receive your request', data: filtered_result});
+          });
+
+
+
 
 
     } finally {

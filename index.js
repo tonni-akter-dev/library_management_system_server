@@ -21,10 +21,7 @@ async function run() {
         const adminaddThesisCollection = database.collection("addedThesisByAdmin");
         const adminListCollection = database.collection("addAdmin");
         const userListCollection = database.collection("addUser");
-
         /* admin collection ends */
-
-
         app.get("/allBooks", async (req, res) => {
             const cursor = booksCollection.find({});
             const result = await cursor.toArray();
@@ -56,7 +53,6 @@ async function run() {
             const cursor = await booksCollection.find(query);
             const result = await cursor.toArray();
             const filtered_result = result.filter(item => {
-
                 if (item[search_field]) {
                     const field = item[search_field];
                     if (typeof field === "string" && field.toLowerCase().includes(search_text?.toLowerCase())) {
@@ -71,6 +67,46 @@ async function run() {
             console.log(filtered_result)
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
+        app.post("/admin/search", async (req, res) => {
+            const { search_field1, search_text } = req.body;
+            console.log(search_text)
+            let query = {};
+            const cursor = await adminListCollection.find(query);
+            const result = await cursor.toArray();
+            const filtered_result = result.filter(item => {
+                if (item[search_field1]) {
+                    const field = item[search_field1];
+                    if (field.toLowerCase().includes(search_text?.toLowerCase())) {
+                        return true;
+                    } else {
+                        return false
+                    }
+                } else {
+                    return false
+                }
+            })
+            res.json({ message: 'we are receive your request', data: filtered_result });
+        });
+        app.post("/user/search", async (req, res) => {
+            const { search_field2, search_text } = req.body;
+            let query = {};
+            const cursor = await userListCollection.find(query);
+            const result = await cursor.toArray();
+            const filtered_result = result.filter(item => {
+                if (item[search_field2]) {
+                    const field = item[search_field2];
+                    if (field.toLowerCase().includes(search_text?.toLowerCase())) {
+                        return true;
+                    } else {
+                        return false
+                    }
+                } else {
+                    return false
+                }
+            })
+            res.json({ message: 'we are receive your request', data: filtered_result });
+        });
+
 
         /* admin starts */
         app.post("/addBooks", async (req, res) => {
@@ -109,6 +145,53 @@ async function run() {
             console.log(result)
             res.json(result);
         });
+        app.get("/updateAdminProfile", async (req, res) => {
+            const cursor = adminListCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+        app.get("/updateAdminProfile/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await adminListCollection.findOne(query);
+            res.json(result);
+        });
+        app.post("/addUser", async (req, res) => {
+            const user = req.body;
+            const result = await userListCollection.insertOne(user);
+            console.log(result)
+            res.json(result);
+        });
+        app.get("/userList", async (req, res) => {
+            // const limit = 8;
+            const cursor = userListCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+        app.get("/userList/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await userListCollection.findOne(query);
+            res.json(result);
+        });
+
+        // update profile
+        app.put("/updateProfile/:id", async (req, res) => {
+            const id = req.query.id;
+            const newData = req.body;
+            const filter = { _id: ObjectId(id) };
+            
+            const option = { upsert: true };
+            const updateDoc = { $set: {...newData} };
+            const result = await adminListCollection.updateOne(
+              filter,
+              updateDoc,
+              option
+            );
+            res.json(result);
+          });
+
+
 
 
     } finally {

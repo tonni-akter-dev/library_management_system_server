@@ -20,12 +20,21 @@ async function run() {
         const adminaddThesisCollection = database.collection("addedThesisByAdmin");
         const adminListCollection = database.collection("addAdmin");
         const userListCollection = database.collection("addUser");
+        const requestBookCollection = database.collection("requestBook");
         /* admin collection ends */
         app.get("/allBooks", async (req, res) => {
             const cursor = booksCollection.find({});
             const result = await cursor.toArray();
             res.send(result);
         });
+        app.get("/requestforABook/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await booksCollection.findOne(query);
+            console.log(result);
+            res.json(result);
+        });
+
         app.get("/homebooks", async (req, res) => {
             const limit = 8;
             const cursor = booksCollection.find({}).limit(limit);
@@ -37,6 +46,12 @@ async function run() {
             const query = { _id: ObjectId(id) };
             const result = await booksCollection.findOne(query);
             console.log(result);
+            res.json(result);
+        });
+         app.post("/requestforABook", async (req, res) => {
+            const books = req.body;
+            const result = await requestBookCollection.insertOne(books);
+            console.log(result)
             res.json(result);
         });
 
@@ -67,7 +82,6 @@ async function run() {
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
         /* admin starts */
-
         // admin book search
         app.post("/adminBookSearch", async (req, res) => {
             const { branch, search_field, search_text } = req.body;
@@ -75,7 +89,6 @@ async function run() {
             if (branch) {
                 query['library'] = branch
             }
-
             const cursor = await booksCollection.find(query);
             const result = await cursor.toArray();
             const filtered_result = result.filter(item => {

@@ -2,7 +2,6 @@
 const express = require("express");
 const app = express();
 const ObjectId = require("mongodb").ObjectId;
-// require("dotenv").config();
 const cors = require("cors");
 const port = process.env.PORT || 5000;
 app.use(cors());
@@ -67,16 +66,16 @@ async function run() {
             console.log(filtered_result)
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
+        /* admin starts */
 
         // admin book search
-
         app.post("/adminBookSearch", async (req, res) => {
             const { branch, search_field, search_text } = req.body;
             let query = {};
             if (branch) {
                 query['library'] = branch
             }
-          
+
             const cursor = await booksCollection.find(query);
             const result = await cursor.toArray();
             const filtered_result = result.filter(item => {
@@ -94,12 +93,6 @@ async function run() {
             console.log(filtered_result)
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
-
-
-
-
-
-
         app.post("/admin/search", async (req, res) => {
             const { search_field1, search_text } = req.body;
             console.log(search_text)
@@ -139,7 +132,6 @@ async function run() {
             })
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
-        /* admin starts */
         app.post("/addBooks", async (req, res) => {
             const books = req.body;
             const result = await adminaddBooksCollection.insertOne(books);
@@ -159,7 +151,6 @@ async function run() {
             res.json(result);
         });
         app.get("/adminList", async (req, res) => {
-            // const limit = 8;
             const cursor = adminListCollection.find({});
             const result = await cursor.toArray();
             res.send(result);
@@ -194,7 +185,6 @@ async function run() {
             res.json(result);
         });
         app.get("/userList", async (req, res) => {
-            // const limit = 8;
             const cursor = userListCollection.find({});
             const result = await cursor.toArray();
             res.send(result);
@@ -206,7 +196,7 @@ async function run() {
             res.json(result);
         });
 
-        // update profile
+        // update admin profile-->admin
         app.put('/updateProfile/:id', async (req, res) => {
             const id = req.params.id
             const query = req.body;
@@ -223,6 +213,7 @@ async function run() {
 
             res.json(result)
         });
+        // update user ->admin
         app.put('/updateUserProfile/:id', async (req, res) => {
             const id = req.params.id
             const query = req.body;
@@ -269,9 +260,6 @@ async function run() {
             console.log(result)
             res.send(result);
         });
-
-
-
     } finally {
         // await client.close();
     }

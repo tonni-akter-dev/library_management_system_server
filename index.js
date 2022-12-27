@@ -278,29 +278,6 @@ async function run() {
 }
 run().catch(console.dir);
 
-
-
-
-
-
-/* 
-async function run() {
-    try {
-        await client.connect();
-        const database = client.db("shop-mart");
-        const userCollection = database.collection("users");
-        const user={name:"tonni"}
-        userCollection.insertOne(user)
-
-
-
-
-    } finally {
-        // await client.close();
-    }
-}
-run().catch(console.dir) ;*/
-
 app.get('/', (req, res) => {
     res.send('Hello World 1')
 })

@@ -67,6 +67,39 @@ async function run() {
             console.log(filtered_result)
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
+
+        // admin book search
+
+        app.post("/adminBookSearch", async (req, res) => {
+            const { branch, search_field, search_text } = req.body;
+            let query = {};
+            if (branch) {
+                query['library'] = branch
+            }
+          
+            const cursor = await booksCollection.find(query);
+            const result = await cursor.toArray();
+            const filtered_result = result.filter(item => {
+                if (item[search_field]) {
+                    const field = item[search_field];
+                    if (typeof field === "string" && field.toLowerCase().includes(search_text?.toLowerCase())) {
+                        return true;
+                    } else {
+                        return false
+                    }
+                } else {
+                    return false
+                }
+            })
+            console.log(filtered_result)
+            res.json({ message: 'we are receive your request', data: filtered_result });
+        });
+
+
+
+
+
+
         app.post("/admin/search", async (req, res) => {
             const { search_field1, search_text } = req.body;
             console.log(search_text)
@@ -106,8 +139,6 @@ async function run() {
             })
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
-
-
         /* admin starts */
         app.post("/addBooks", async (req, res) => {
             const books = req.body;
@@ -176,21 +207,68 @@ async function run() {
         });
 
         // update profile
-        app.put("/updateProfile/:id", async (req, res) => {
-            const id = req.query.id;
-            const newData = req.body;
-            const filter = { _id: ObjectId(id) };
-            
-            const option = { upsert: true };
-            const updateDoc = { $set: {...newData} };
-            const result = await adminListCollection.updateOne(
-              filter,
-              updateDoc,
-              option
-            );
-            res.json(result);
-          });
+        app.put('/updateProfile/:id', async (req, res) => {
+            const id = req.params.id
+            const query = req.body;
+            const filter = {
+                _id: ObjectId(id)
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...query
+                },
+            };
+            const result = await adminListCollection.updateOne(filter, updateDoc, options);
 
+            res.json(result)
+        });
+        app.put('/updateUserProfile/:id', async (req, res) => {
+            const id = req.params.id
+            const query = req.body;
+            const filter = {
+                _id: ObjectId(id)
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...query
+                },
+            };
+            const result = await userListCollection.updateOne(filter, updateDoc, options);
+
+            res.json(result)
+        });
+        // delete admin
+        app.delete("/adminList/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await adminListCollection.deleteOne(query);
+            console.log(result)
+            res.send(result);
+        });
+        app.delete("/admin/search/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await adminListCollection.deleteOne(query);
+            console.log(result)
+            res.send(result);
+        });
+        // delete user
+        app.delete("/userList/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await userListCollection.deleteOne(query);
+            console.log(result)
+            res.send(result);
+        });
+        app.delete("/user/search/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await userListCollection.deleteOne(query);
+            console.log(result)
+            res.send(result);
+        });
 
 
 

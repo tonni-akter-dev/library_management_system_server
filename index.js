@@ -21,12 +21,15 @@ async function run() {
         const adminaddThesisCollection = database.collection("addedThesisByAdmin");
         const adminListCollection = database.collection("addAdmin");
         const userListCollection = database.collection("addUser");
+        const issueBookCollection = database.collection("IssueBooks");
+
         /* admin collection ends */
         app.get("/allBooks", async (req, res) => {
             const cursor = booksCollection.find({});
             const result = await cursor.toArray();
             res.send(result);
         });
+
         app.get("/homebooks", async (req, res) => {
             const limit = 8;
             const cursor = booksCollection.find({}).limit(limit);
@@ -34,6 +37,18 @@ async function run() {
             res.send(result);
         });
         app.get("/allBooks/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await booksCollection.findOne(query);
+            console.log(result);
+            res.json(result);
+        });
+        app.get("/viewBooks", async (req, res) => {
+            const cursor = booksCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+        app.get("/viewBooks/:id", async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await booksCollection.findOne(query);
@@ -76,7 +91,7 @@ async function run() {
             if (branch) {
                 query['library'] = branch
             }
-          
+
             const cursor = await booksCollection.find(query);
             const result = await cursor.toArray();
             const filtered_result = result.filter(item => {
@@ -94,11 +109,6 @@ async function run() {
             console.log(filtered_result)
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
-
-
-
-// hello
-
 
         app.post("/admin/search", async (req, res) => {
             const { search_field1, search_text } = req.body;
@@ -146,6 +156,27 @@ async function run() {
             console.log(result)
             res.json(result);
         });
+        // issueBookCollection
+        app.post("/issueBook", async (req, res) => {
+            const books = req.body;
+            const result = await issueBookCollection.insertOne(books);
+            console.log(result)
+            res.json(result);
+        });
+        // get issurequest lists
+        app.get("/issueBook", async (req, res) => {
+            const cursor = issueBookCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+
+        app.get("/issueBook/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await booksCollection.findOne(query);
+            res.json(result);
+        });
         app.post("/addThesis", async (req, res) => {
             const books = req.body;
             const result = await adminaddThesisCollection.insertOne(books);
@@ -159,7 +190,6 @@ async function run() {
             res.json(result);
         });
         app.get("/adminList", async (req, res) => {
-            // const limit = 8;
             const cursor = adminListCollection.find({});
             const result = await cursor.toArray();
             res.send(result);
@@ -223,6 +253,7 @@ async function run() {
 
             res.json(result)
         });
+
         app.put('/updateUserProfile/:id', async (req, res) => {
             const id = req.params.id
             const query = req.body;
@@ -237,6 +268,21 @@ async function run() {
             };
             const result = await userListCollection.updateOne(filter, updateDoc, options);
 
+            res.json(result)
+        });
+        app.put('/updateBookInfo/:id', async (req, res) => {
+            const id = req.params.id
+            const query = req.body;
+            const filter = {
+                _id: ObjectId(id)
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...query
+                },
+            };
+            const result = await booksCollection.updateOne(filter, updateDoc, options);
             res.json(result)
         });
         // delete admin

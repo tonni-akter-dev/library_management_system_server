@@ -151,6 +151,27 @@ async function run() {
             console.log(result)
             res.json(result);
         });
+        // issueBookCollection
+        app.post("/issueBook", async (req, res) => {
+            const books = req.body;
+            const result = await issueBookCollection.insertOne(books);
+            console.log(result)
+            res.json(result);
+        });
+        // get issurequest lists
+        app.get("/issueBook", async (req, res) => {
+            const cursor = issueBookCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+
+        app.get("/issueBook/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await booksCollection.findOne(query);
+            res.json(result);
+        });
         app.post("/addThesis", async (req, res) => {
             const books = req.body;
             const result = await adminaddThesisCollection.insertOne(books);
@@ -226,7 +247,11 @@ async function run() {
 
             res.json(result)
         });
+<<<<<<< HEAD
         // update user ->admin
+=======
+
+>>>>>>> admin
         app.put('/updateUserProfile/:id', async (req, res) => {
             const id = req.params.id
             const query = req.body;
@@ -241,6 +266,21 @@ async function run() {
             };
             const result = await userListCollection.updateOne(filter, updateDoc, options);
 
+            res.json(result)
+        });
+        app.put('/updateBookInfo/:id', async (req, res) => {
+            const id = req.params.id
+            const query = req.body;
+            const filter = {
+                _id: ObjectId(id)
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...query
+                },
+            };
+            const result = await booksCollection.updateOne(filter, updateDoc, options);
             res.json(result)
         });
         // delete admin

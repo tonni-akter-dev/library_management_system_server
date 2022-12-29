@@ -20,6 +20,7 @@ async function run() {
         const adminaddThesisCollection = database.collection("addedThesisByAdmin");
         const adminListCollection = database.collection("addAdmin");
         const userListCollection = database.collection("addUser");
+        const issueBookCollection = database.collection("issueBook");
         const requestBookCollection = database.collection("requestBook");
         /* admin collection ends */
         app.get("/allBooks", async (req, res) => {

@@ -247,11 +247,7 @@ async function run() {
 
             res.json(result)
         });
-<<<<<<< HEAD
         // update user ->admin
-=======
-
->>>>>>> admin
         app.put('/updateUserProfile/:id', async (req, res) => {
             const id = req.params.id
             const query = req.body;

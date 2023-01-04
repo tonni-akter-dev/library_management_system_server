@@ -2,11 +2,14 @@
 const express = require("express");
 const app = express();
 const ObjectId = require("mongodb").ObjectId;
-// require("dotenv").config();
 const cors = require("cors");
 const port = process.env.PORT || 5000;
+const fileUpload = require('express-fileupload');
 app.use(cors());
 app.use(express.json());
+app.use(fileUpload());
+
+
 const { MongoClient } = require("mongodb");
 const uri = "mongodb+srv://library-management-system:DSUXgSDIiz7pGogH@cluster0.qtpo1.mongodb.net/?retryWrites=true&w=majority";
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -15,13 +18,14 @@ async function run() {
         await client.connect();
         const database = client.db("library_management_system");
         const booksCollection = database.collection("allbooksdata");
-
         /* admin collection starts*/
         const adminaddBooksCollection = database.collection("addedBooksByAdmin");
+        const addBooksCollection = database.collection("addBooks");
         const adminaddThesisCollection = database.collection("addedThesisByAdmin");
         const adminListCollection = database.collection("addAdmin");
         const userListCollection = database.collection("addUser");
         const issueBookCollection = database.collection("IssueBooks");
+        const imageaddcollection = database.collection("imageadd");
         // added line for merge with main
         const requestBookCollection = database.collection("requestBook");
         /* admin collection ends */
@@ -30,7 +34,6 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         });
-
         app.get("/homebooks", async (req, res) => {
             const limit = 8;
             const cursor = booksCollection.find({}).limit(limit);
@@ -41,7 +44,6 @@ async function run() {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await booksCollection.findOne(query);
-            console.log(result);
             res.json(result);
         });
         app.get("/viewBooks", async (req, res) => {
@@ -53,10 +55,15 @@ async function run() {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await booksCollection.findOne(query);
-            console.log(result);
             res.json(result);
         });
-
+        app.delete("/viewBooks/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await booksCollection.deleteOne(query);
+            res.send(result);
+        });
+        // user book search
         app.post("/search", async (req, res) => {
             const { type, branch, search_field, search_text } = req.body;
             let query = {};
@@ -80,19 +87,16 @@ async function run() {
                     return false
                 }
             })
-            console.log(filtered_result)
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
 
         // admin book search
-
         app.post("/adminBookSearch", async (req, res) => {
             const { branch, search_field, search_text } = req.body;
             let query = {};
             if (branch) {
                 query['library'] = branch
             }
-
             const cursor = await booksCollection.find(query);
             const result = await cursor.toArray();
             const filtered_result = result.filter(item => {
@@ -107,13 +111,204 @@ async function run() {
                     return false
                 }
             })
-            console.log(filtered_result)
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
 
+
+        /* admin starts */
+        // app.post("/addBooks", async (req, res) => {
+        //     // console.log('body',req.body)
+        //     // console.log('files',req.files)
+        //     const books = req.body;
+        //     const result = await adminaddBooksCollection.insertOne(books);
+        //     res.json(result);
+        // });
+        app.post("/addBooks", async (req, res) => {
+            console.log('body', req.body.title);
+            console.log('body', req.body.isbn);
+            console.log('files', req.files);
+            const cateory = req.body.category;
+            const callNo = req.body.callNo;
+            const title = req.body.title;
+            const isbn = req.body.isbn;
+            const author = req.body.author;
+            const publisher = req.body.publisher;
+            const edition = req.body.edition;
+            const price = req.body.price;
+            const publishYear = req.body.publishYear;
+            const accessionNumber = req.body.accessionNumber;
+            const tags = req.body.tags;
+            const branch = req.body.branch;
+            const description = req.body.description;
+            // const books = req.body;
+            const pic = req.files.image;
+            const picData = pic.data;
+            const encodedPic = picData.toString('base64');
+            const imageBuffer = Buffer.from(encodedPic, 'base64');
+            const book = {
+                cateory, callNo, title, isbn, author, publisher, edition, price, publishYear, accessionNumber, tags, branch, description,
+                image: imageBuffer
+            }
+            // const result = await adminaddBooksCollection.insertOne(book);
+            // console.log(result);
+            // res.json(result);
+            const result = await adminaddBooksCollection.insertOne(book);
+            console.log(result)
+            res.json(result);
+        });
+
+        app.get("/addImage", async (req, res) => {
+            const cursor = imageaddcollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        app.post("/addImage", async (req, res) => {
+            console.log('body', req.body)
+            console.log('files', req.files)
+            const name = req.body.name;
+            const email = req.body.email;
+            const pic = req.files.image;
+            const picData = pic.data;
+            const encodedPic = picData.toString('base64');
+            const imageBuffer = Buffer.from(encodedPic, 'base64');
+            const book = {
+                name, email,
+                image: imageBuffer
+            }
+
+            const result = await imageaddcollection.insertOne(book);
+            console.log(result);
+            res.json(result);
+        });
+        // issueBookCollection
+        app.post("/issueRequestForABook", async (req, res) => {
+            const books = req.body;
+            const result = await issueBookCollection.insertOne(books);
+            res.json(result);
+        });
+        // get issurequest lists
+        app.get("/issueRequestForABook", async (req, res) => {
+            const cursor = issueBookCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+        app.get("/issueRequestForABook/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await issueBookCollection.findOne(query);
+            res.json(result);
+        });
+        app.post("/addThesis", async (req, res) => {
+            const books = req.body;
+            const result = await adminaddThesisCollection.insertOne(books);
+            res.json(result);
+        });
+
+        app.put('/updateBookInfo/:id', async (req, res) => {
+            const id = req.params.id
+            const query = req.body;
+            const filter = {
+                _id: ObjectId(id)
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...query
+                },
+            };
+            const result = await booksCollection.updateOne(filter, updateDoc, options);
+            res.json(result)
+        });
+
+        app.put('/issueRequestForABook/:id', async (req, res) => {
+            const id = req.params.id;
+            // const uid = req.params.uid;
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    status: "acceptRequest",
+                    deleteIssueReq: "deleteIssueReq"
+                },
+            };
+            const result = await issueBookCollection.updateOne(filter, updateDoc, options);
+            res.json(result);
+        });
+
+        app.delete("/issueRequestForABook/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await issueBookCollection.deleteOne(query);
+            res.send(result);
+        });
+
+
+        /* member routes start */
+        // delete admin
+        app.delete("/adminList/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await adminListCollection.deleteOne(query);
+            res.send(result);
+        });
+        // admin search then delete
+        app.delete("/admin/search/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await adminListCollection.deleteOne(query);
+            res.send(result);
+        });
+        // delete user
+        app.delete("/userList/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await userListCollection.deleteOne(query);
+            res.send(result);
+        });
+        // user search then delete
+        app.delete("/user/search/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await userListCollection.deleteOne(query);
+            res.send(result);
+        });
+        // update admin profile
+        app.put('/updateProfile/:id', async (req, res) => {
+            const id = req.params.id
+            const query = req.body;
+            const filter = {
+                _id: ObjectId(id)
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...query
+                },
+            };
+            const result = await adminListCollection.updateOne(filter, updateDoc, options);
+
+            res.json(result)
+        });
+        // update user profile
+        app.put('/updateUserProfile/:id', async (req, res) => {
+            const id = req.params.id
+            const query = req.body;
+            const filter = {
+                _id: ObjectId(id)
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...query
+                },
+            };
+            const result = await userListCollection.updateOne(filter, updateDoc, options);
+
+            res.json(result)
+        });
         app.post("/admin/search", async (req, res) => {
             const { search_field1, search_text } = req.body;
-            console.log(search_text)
             let query = {};
             const cursor = await adminListCollection.find(query);
             const result = await cursor.toArray();
@@ -150,44 +345,10 @@ async function run() {
             })
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
-        /* admin starts */
-        app.post("/addBooks", async (req, res) => {
-            const books = req.body;
-            const result = await adminaddBooksCollection.insertOne(books);
-            console.log(result)
-            res.json(result);
-        });
-        // issueBookCollection
-        app.post("/issueBook", async (req, res) => {
-            const books = req.body;
-            const result = await issueBookCollection.insertOne(books);
-            console.log(result)
-            res.json(result);
-        });
-        // get issurequest lists
-        app.get("/issueBook", async (req, res) => {
-            const cursor = issueBookCollection.find({});
-            const result = await cursor.toArray();
-            res.send(result);
-        });
 
-
-        app.get("/issueBook/:id", async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const result = await booksCollection.findOne(query);
-            res.json(result);
-        });
-        app.post("/addThesis", async (req, res) => {
-            const books = req.body;
-            const result = await adminaddThesisCollection.insertOne(books);
-            console.log(result)
-            res.json(result);
-        });
         app.post("/addAdmin", async (req, res) => {
             const admin = req.body;
             const result = await adminListCollection.insertOne(admin);
-            console.log(result)
             res.json(result);
         });
         app.get("/adminList", async (req, res) => {
@@ -204,7 +365,6 @@ async function run() {
         app.post("/addUser", async (req, res) => {
             const user = req.body;
             const result = await userListCollection.insertOne(user);
-            console.log(result)
             res.json(result);
         });
         app.get("/updateAdminProfile", async (req, res) => {
@@ -221,11 +381,9 @@ async function run() {
         app.post("/addUser", async (req, res) => {
             const user = req.body;
             const result = await userListCollection.insertOne(user);
-            console.log(result)
             res.json(result);
         });
         app.get("/userList", async (req, res) => {
-            // const limit = 8;
             const cursor = userListCollection.find({});
             const result = await cursor.toArray();
             res.send(result);
@@ -236,9 +394,26 @@ async function run() {
             const result = await userListCollection.findOne(query);
             res.json(result);
         });
+        /* member routes ends */
 
-        // update profile
-        app.put('/updateProfile/:id', async (req, res) => {
+
+
+        // issuebooks fineone
+        app.get("/extendReturnDate/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await issueBookCollection.findOne(query);
+            res.json(result);
+        });
+        // app.get("/issueBook/:id", async (req, res) => {
+        //     const id = req.params.id;
+        //     const query = { _id: ObjectId(id) };
+        //     const result = await issueBookCollection.findOne(query);
+        //     res.json(result);
+        // });
+
+        // update return date work
+        app.put('/issueBook/:id', async (req, res) => {
             const id = req.params.id
             const query = req.body;
             const filter = {
@@ -250,74 +425,16 @@ async function run() {
                     ...query
                 },
             };
-            const result = await adminListCollection.updateOne(filter, updateDoc, options);
-
+            const result = await issueBookCollection.updateOne(filter, updateDoc, options);
             res.json(result)
         });
-
-        app.put('/updateUserProfile/:id', async (req, res) => {
-            const id = req.params.id
-            const query = req.body;
-            const filter = {
-                _id: ObjectId(id)
-            };
-            const options = { upsert: true };
-            const updateDoc = {
-                $set: {
-                    ...query
-                },
-            };
-            const result = await userListCollection.updateOne(filter, updateDoc, options);
-
-            res.json(result)
-        });
-        app.put('/updateBookInfo/:id', async (req, res) => {
-            const id = req.params.id
-            const query = req.body;
-            const filter = {
-                _id: ObjectId(id)
-            };
-            const options = { upsert: true };
-            const updateDoc = {
-                $set: {
-                    ...query
-                },
-            };
-            const result = await booksCollection.updateOne(filter, updateDoc, options);
-            res.json(result)
-        });
-        // delete admin
-        app.delete("/adminList/:id", async (req, res) => {
+        // if returned then delet from issue request list--------
+        app.delete("/returnBook/:id", async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
-            const result = await adminListCollection.deleteOne(query);
-            console.log(result)
+            const result = await issueBookCollection.deleteOne(query);
             res.send(result);
         });
-        app.delete("/admin/search/:id", async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const result = await adminListCollection.deleteOne(query);
-            console.log(result)
-            res.send(result);
-        });
-        // delete user
-        app.delete("/userList/:id", async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const result = await userListCollection.deleteOne(query);
-            console.log(result)
-            res.send(result);
-        });
-        app.delete("/user/search/:id", async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const result = await userListCollection.deleteOne(query);
-            console.log(result)
-            res.send(result);
-        });
-
-
 
     } finally {
         // await client.close();

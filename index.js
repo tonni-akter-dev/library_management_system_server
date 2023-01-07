@@ -5,9 +5,13 @@ const ObjectId = require("mongodb").ObjectId;
 const cors = require("cors");
 const port = process.env.PORT || 5000;
 const fileUpload = require('express-fileupload');
+const bcrypt = require("bcrypt");
 app.use(cors());
 app.use(express.json());
 app.use(fileUpload());
+const jwt = require("jsonwebtoken");
+const JWT_SECRET =
+    "hvdvay6ert7283928kjh93uhefiu2545()&&&*(*(jhkjfi78272jbkj?[]]pou89ywe";
 
 
 const { MongoClient } = require("mongodb");
@@ -95,9 +99,9 @@ async function run() {
             const { branch, search_field, search_text } = req.body;
             let query = {};
             if (branch) {
-                query['library'] = branch
+                query['branch'] = branch
             }
-            const cursor = await booksCollection.find(query);
+            const cursor = await adminaddBooksCollection.find(query);
             const result = await cursor.toArray();
             const filtered_result = result.filter(item => {
                 if (item[search_field]) {
@@ -112,17 +116,9 @@ async function run() {
                 }
             })
             res.json({ message: 'we are receive your request', data: filtered_result });
+            console.log(" result", filtered_result);
         });
 
-
-        /* admin starts */
-        // app.post("/addBooks", async (req, res) => {
-        //     // console.log('body',req.body)
-        //     // console.log('files',req.files)
-        //     const books = req.body;
-        //     const result = await adminaddBooksCollection.insertOne(books);
-        //     res.json(result);
-        // });
         app.post("/addBooks", async (req, res) => {
             console.log('body', req.body.title);
             console.log('body', req.body.isbn);
@@ -140,7 +136,6 @@ async function run() {
             const tags = req.body.tags;
             const branch = req.body.branch;
             const description = req.body.description;
-            // const books = req.body;
             const pic = req.files.image;
             const picData = pic.data;
             const encodedPic = picData.toString('base64');
@@ -149,12 +144,15 @@ async function run() {
                 cateory, callNo, title, isbn, author, publisher, edition, price, publishYear, accessionNumber, tags, branch, description,
                 image: imageBuffer
             }
-            // const result = await adminaddBooksCollection.insertOne(book);
-            // console.log(result);
-            // res.json(result);
             const result = await adminaddBooksCollection.insertOne(book);
             console.log(result)
             res.json(result);
+        });
+
+        app.get("/addBooks1", async (req, res) => {
+            const cursor = adminaddBooksCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
         });
 
         app.get("/addImage", async (req, res) => {
@@ -163,24 +161,24 @@ async function run() {
             res.send(result);
         });
 
-        app.post("/addImage", async (req, res) => {
-            console.log('body', req.body)
-            console.log('files', req.files)
-            const name = req.body.name;
-            const email = req.body.email;
-            const pic = req.files.image;
-            const picData = pic.data;
-            const encodedPic = picData.toString('base64');
-            const imageBuffer = Buffer.from(encodedPic, 'base64');
-            const book = {
-                name, email,
-                image: imageBuffer
-            }
+        // app.post("/addImage", async (req, res) => {
+        //     console.log('body', req.body)
+        //     console.log('files', req.files)
+        //     const name = req.body.name;
+        //     const email = req.body.email;
+        //     const pic = req.files.image;
+        //     const picData = pic.data;
+        //     const encodedPic = picData.toString('base64');
+        //     const imageBuffer = Buffer.from(encodedPic, 'base64');
+        //     const book = {
+        //         name, email,
+        //         image: imageBuffer
+        //     }
 
-            const result = await imageaddcollection.insertOne(book);
-            console.log(result);
-            res.json(result);
-        });
+        //     const result = await imageaddcollection.insertOne(book);
+        //     console.log(result);
+        //     res.json(result);
+        // });
         // issueBookCollection
         app.post("/issueRequestForABook", async (req, res) => {
             const books = req.body;
@@ -435,6 +433,118 @@ async function run() {
             const result = await issueBookCollection.deleteOne(query);
             res.send(result);
         });
+
+
+
+        // login work
+        app.post("/register", async (req, res) => {
+            const { fullName, instituteId, department, userType, phoneNumber, instituteEmail, personalEmail, presentAdd, password } = req.body;
+
+            const encryptedPassword = await bcrypt.hash(password, 10);
+            try {
+                // const {user} = req.body;
+                const oldUser = await userListCollection.findOne({ instituteEmail })
+                if (oldUser) {
+                    return res.json({ error: "User Exists" });
+                }
+                const result = await userListCollection.insertOne({ fullName, instituteId, department, userType, phoneNumber, instituteEmail, personalEmail, presentAdd, password: encryptedPassword });
+                res.json(result);
+                res.send({ status: "ok" });
+            } catch (error) {
+                res.send({ status: "error" });
+            }
+        });
+        app.post("/login-user", async (req, res) => {
+            console.log(req.body);
+            const { instituteEmail, password } = req.body;
+            const user = await userListCollection.findOne({ instituteEmail: instituteEmail });
+            console.log(user)
+            if (!user) {
+                return res.json({ error: "User Not found" });
+            }
+            if (await bcrypt.compare(password, user.password)) {
+                const token = jwt.sign({ instituteEmail: user.instituteEmail }, JWT_SECRET);
+
+                if (res.status(201)) {
+                    return res.json({ status: "ok", data: token });
+                } else {
+                    return res.json({ error: "error" });
+                }
+            }
+            res.json({ status: "error", error: "InvAlid Password" });
+        });
+        // get login user data
+        app.post("/userData", async (req, res) => {
+            const { token } = req.body;
+            try {
+                const user = jwt.verify(token, JWT_SECRET);
+                /* , (err, res) => {
+                    if (err) {
+                        return "token expired";
+                    }
+                    return res;
+                } */
+                // console.log(user);
+                // if (user == "token expired") {
+                //     return res.send({ status: "error", data: "token expired" });
+                // }
+                const useremail = user.instituteEmail;
+                // console.log(useremail)
+                userListCollection.findOne({ instituteEmail: useremail })
+                    .then((data) => {
+                        res.send({ status: "ok", data: data });
+                    })
+                    .catch((error) => {
+                        res.send({ status: "error", data: error });
+                    });
+            } catch (error) { }
+        });
+
+
+
+        app.put('/userData/:id', async (req, res) => {
+            const id = req.params.id
+            const query = req.body;
+            const filter = {
+                _id: ObjectId(id)
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...query
+                },
+            };
+            const result = await userListCollection.updateOne(filter, updateDoc, options);
+
+            res.json(result)
+        });
+
+
+        // user my account ar nijer nijer requested issue books show
+        /*  app.get("/requestedBook", async (req, res) => {
+             console.log(req.query)
+             const email = req.query.instituteEmail;
+             const query = { instituteEmail: email };
+             const cursor = issueBookCollection.find(query);
+             const result = await cursor.toArray();
+             console.log(result)
+             res.send(result);
+           }); */
+        app.get("/requestedBook", async (req, res) => {
+            console.log(req.query)
+            const email = req.query.instituteEmail;
+            const query = { instituteEmail: email };
+            const cursor = issueBookCollection.find(query);
+            const result = await cursor.toArray();
+            console.log(result)
+            res.send(result);
+        });
+
+
+
+
+
+
 
     } finally {
         // await client.close();

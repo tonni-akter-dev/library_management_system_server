@@ -499,9 +499,6 @@ async function run() {
                     });
             } catch (error) { }
         });
-
-
-
         app.put('/userData/:id', async (req, res) => {
             const id = req.params.id
             const query = req.body;
@@ -515,21 +512,18 @@ async function run() {
                 },
             };
             const result = await userListCollection.updateOne(filter, updateDoc, options);
-
             res.json(result)
         });
 
 
+
         // user my account ar nijer nijer requested issue books show
-        /*  app.get("/requestedBook", async (req, res) => {
-             console.log(req.query)
-             const email = req.query.instituteEmail;
-             const query = { instituteEmail: email };
-             const cursor = issueBookCollection.find(query);
-             const result = await cursor.toArray();
-             console.log(result)
-             res.send(result);
-           }); */
+        app.get("/userData", async (req, res) => {
+            const cursor = userListCollection.find({});
+            const result = await cursor.toArray();
+            console.log(result)
+            res.send(result);
+        });
         app.get("/requestedBook", async (req, res) => {
             console.log(req.query)
             const email = req.query.instituteEmail;

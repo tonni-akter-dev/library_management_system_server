@@ -23,6 +23,7 @@ async function run() {
         const database = client.db("library_management_system");
         const booksCollection = database.collection("allbooksdata");
         /* admin collection starts*/
+        const noticeBoard = database.collection("noticeboard");
         const adminaddBooksCollection = database.collection("addedBooksByAdmin");
         const addBooksCollection = database.collection("addBooks");
         const adminaddThesisCollection = database.collection("addedThesisByAdmin");
@@ -33,6 +34,15 @@ async function run() {
         // added line for merge with main
         const requestBookCollection = database.collection("requestBook");
         /* admin collection ends */
+        // noticeboard
+        app.post("/noticeboard", async (req, res) => {
+        
+            const result = await noticeBoard.insertOne({notice:""});
+            res.json(result);
+        });
+
+
+
         app.get("/allBooks", async (req, res) => {
             const cursor = booksCollection.find({});
             const result = await cursor.toArray();
@@ -120,31 +130,28 @@ async function run() {
         });
 
         app.post("/addBooks", async (req, res) => {
-            console.log('body', req.body.title);
-            console.log('body', req.body.isbn);
-            console.log('files', req.files);
-            const cateory = req.body.category;
+            const category = req.body.category;
             const callNo = req.body.callNo;
             const title = req.body.title;
-            const isbn = req.body.isbn;
-            const author = req.body.author;
+            const ISBN10 = req.body.ISBN10;
+            const authors = req.body.authors;
             const publisher = req.body.publisher;
             const edition = req.body.edition;
             const price = req.body.price;
-            const publishYear = req.body.publishYear;
+            const publicationYear = req.body.publicationYear;
             const accessionNumber = req.body.accessionNumber;
             const tags = req.body.tags;
             const branch = req.body.branch;
             const description = req.body.description;
-            const pic = req.files.image;
-            const picData = pic.data;
-            const encodedPic = picData.toString('base64');
-            const imageBuffer = Buffer.from(encodedPic, 'base64');
+            // const pic = req.files.image;
+            // const picData = pic.data;
+            // const encodedPic = picData.toString('base64');
+            // const imageBuffer = Buffer.from(encodedPic, 'base64');
             const book = {
-                cateory, callNo, title, isbn, author, publisher, edition, price, publishYear, accessionNumber, tags, branch, description,
-                image: imageBuffer
+                category, callNo, title, ISBN10, authors, publisher, edition, price, publicationYear, accessionNumber, tags, branch, description,
+
             }
-            const result = await adminaddBooksCollection.insertOne(book);
+            const result = await booksCollection.insertOne(book);
             console.log(result)
             res.json(result);
         });
@@ -161,24 +168,6 @@ async function run() {
             res.send(result);
         });
 
-        // app.post("/addImage", async (req, res) => {
-        //     console.log('body', req.body)
-        //     console.log('files', req.files)
-        //     const name = req.body.name;
-        //     const email = req.body.email;
-        //     const pic = req.files.image;
-        //     const picData = pic.data;
-        //     const encodedPic = picData.toString('base64');
-        //     const imageBuffer = Buffer.from(encodedPic, 'base64');
-        //     const book = {
-        //         name, email,
-        //         image: imageBuffer
-        //     }
-
-        //     const result = await imageaddcollection.insertOne(book);
-        //     console.log(result);
-        //     res.json(result);
-        // });
         // issueBookCollection
         app.post("/issueRequestForABook", async (req, res) => {
             const books = req.body;
@@ -202,7 +191,6 @@ async function run() {
             const result = await adminaddThesisCollection.insertOne(books);
             res.json(result);
         });
-
         app.put('/updateBookInfo/:id', async (req, res) => {
             const id = req.params.id
             const query = req.body;
@@ -533,12 +521,70 @@ async function run() {
             console.log(result)
             res.send(result);
         });
+        // admin login
+        app.use("/admin/login", async (req, res, next) => {
+            try {
+                const username = req.body.username;
+                const pass = req.body.pass;
+                console.log(username);
+                console.log(pass);
+                const user = await adminListCollection.find({ instituteEmail: username }).toArray();
+
+                console.log(user);
+                if (user.length > 0) {
+
+                    if (user[0].password === pass) {
+
+                        // user object
+                        const tokenObject = {
+                            name: user.FullName,
+                            InstituteId: user.InstituteId,
+                            Designation: user.Designation,
+                            instituteEmail: user.instituteEmail,
+                            presentAddress: user.presentAddress
+                        }
+
+                        const token = jwt.sign({
+                            data: tokenObject
+                        }, JWT_SECRET, {
+                            expiresIn: '20000h'
+                        });
 
 
 
+                        return res.status(200).json({
+                            success: {
+                                token
+                            }
+                        });
 
+                    } else {
+                        return res.status(403).json({
+                            errors: {
+                                msg: "Invalid password",
+                                type: "password"
+                            }
+                        })
+                    }
 
+                } else {
+                    return res.status(403).json({
+                        errors: {
+                            msg: "Invalid user",
+                            type: "user"
+                        }
+                    })
+                }
 
+            } catch (err) {
+                return res.status(500).json({
+                    errors: {
+                        msg: "Internal server error"
+                    }
+                })
+            }
+
+        });
 
     } finally {
         // await client.close();

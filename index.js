@@ -64,6 +64,17 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         });
+        app.get("/requestforABook", async (req, res) => {
+            const cursor = booksCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+        app.get("/requestforABook/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await booksCollection.findOne(query);
+            res.json(result);
+        });
         app.get("/homebooks", async (req, res) => {
             const limit = 8;
             const cursor = booksCollection.find({}).limit(limit);
@@ -212,7 +223,7 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         });
-        app.get("/viewTheses/:id", async (req, res) => {
+        app.get("/viewThesis/:id", async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await adminaddThesisCollection.findOne(query);

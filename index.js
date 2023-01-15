@@ -12,8 +12,6 @@ app.use(fileUpload());
 const jwt = require("jsonwebtoken");
 const JWT_SECRET =
     "hvdvay6ert7283928kjh93uhefiu2545()&&&*(*(jhkjfi78272jbkj?[]]pou89ywe";
-
-
 const { MongoClient } = require("mongodb");
 const uri = "mongodb+srv://library-management-system:DSUXgSDIiz7pGogH@cluster0.qtpo1.mongodb.net/?retryWrites=true&w=majority";
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -34,31 +32,31 @@ async function run() {
         // added line for merge with main
         const requestBookCollection = database.collection("requestBook");
         /* admin collection ends */
-        // noticeboard
-        app.get("/noticeboard", async (req, res) => {
-            const cursor = noticeBoard.find({});
-            const result = await cursor.toArray();
-            res.send(result);
-        });
+    // noticeboard
+    app.get("/noticeboard", async (req, res) => {
+        const cursor = noticeBoard.find({});
+        const result = await cursor.toArray();
+        res.send(result);
+    });
 
-        // update notice
-        app.put('/updateNotice/:id', async (req, res) => {
-            const id = req.params.id
-            const query = req.body;
-            console.log(query)
-            const filter = {
-                _id: ObjectId(id)
-            };
-            const options = { upsert: true };
-            const updateDoc = {
-                $set: {
-                    ...query
-                },
-            };
-            const result = await noticeBoard.updateOne(filter, updateDoc, options);
-            console.log(result);
-            res.json(result)
-        });
+    // update notice
+    app.put('/updateNotice/:id', async (req, res) => {
+        const id = req.params.id
+        const query = req.body;
+        console.log(query)
+        const filter = {
+            _id: ObjectId(id)
+        };
+        const options = { upsert: true };
+        const updateDoc = {
+            $set: {
+                ...query
+            },
+        };
+        const result = await noticeBoard.updateOne(filter, updateDoc, options);
+        console.log(result);
+        res.json(result)
+    });
 
 
         app.get("/allBooks", async (req, res) => {
@@ -209,6 +207,17 @@ async function run() {
             const result = await adminaddThesisCollection.insertOne(books);
             res.json(result);
         });
+        app.get("/viewThesis", async (req, res) => {
+            const cursor = adminaddThesisCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+        app.get("/viewTheses/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await adminaddThesisCollection.findOne(query);
+            res.json(result);
+        });
         app.put('/updateBookInfo/:id', async (req, res) => {
             const id = req.params.id
             const query = req.body;
@@ -246,7 +255,6 @@ async function run() {
             const result = await issueBookCollection.deleteOne(query);
             res.send(result);
         });
-
 
         /* member routes start */
         // delete admin
@@ -348,12 +356,6 @@ async function run() {
                 }
             })
             res.json({ message: 'we are receive your request', data: filtered_result });
-        });
-
-        app.post("/addUser", async (req, res) => {
-            const admin = req.body;
-            const result = await userListCollection.insertOne(admin);
-            res.json(result);
         });
 
         app.post("/addAdmin", async (req, res) => {
@@ -527,6 +529,8 @@ async function run() {
             res.json(result)
         });
 
+
+
         // user my account ar nijer nijer requested issue books show
         app.get("/userData", async (req, res) => {
             const cursor = userListCollection.find({});
@@ -567,7 +571,7 @@ async function run() {
                             presentAddress: user[0].presentAddress,
                             adminType: user[0].adminType
                         }
-
+                       
                         const token = jwt.sign({
                             data: tokenObject
                         }, JWT_SECRET, {
@@ -607,89 +611,6 @@ async function run() {
                 })
             }
 
-        });
-        app.use("/user/login", async (req, res, next) => {
-            try {
-                const username = req.body.username;
-                console.log(req.body)
-                const pass = req.body.pass;
-                console.log(username);
-                console.log(pass);
-                const user = await userListCollection.find({ instituteEmail: username }).toArray();
-                console.log(user);
-                if (user.length > 0) {
-                    if (user[0].password === pass) {
-                        // user object
-                        const tokenObject = {
-                            name: user[0].fullName,
-                            instituteId: user[0].instituteId,
-                            userType: user[0].userType,
-                            instituteEmail: user[0].instituteEmail,
-                            presentAdd: user[0].presentAdd
-                        }
-                        console.log(tokenObject)
-                        const token = jwt.sign({
-                            data: tokenObject
-                        }, JWT_SECRET, {
-                            expiresIn: '20000h'
-                        });
-                        return res.status(200).json({
-                            success: {
-                                token
-                            }
-                        });
-
-                    } else {
-                        return res.status(403).json({
-                            errors: {
-                                msg: "Invalid password",
-                                type: "password"
-                            }
-                        })
-                    }
-
-                } else {
-                    return res.status(403).json({
-                        errors: {
-                            msg: "Invalid user",
-                            type: "user"
-                        }
-                    })
-                }
-
-            } catch (err) {
-                return res.status(500).json({
-                    errors: {
-                        msg: "Internal server error"
-                    }
-                })
-            }
-
-        });
-        app.post("/loginUserData", async (req, res) => {
-            const { token } = req.body;
-            try {
-                const user = jwt.verify(token, JWT_SECRET);
-                /* , (err, res) => {
-                    if (err) {
-                        return "token expired";
-                    }
-                    return res;
-                } */
-                // console.log(user);
-                // if (user == "token expired") {
-                //     return res.send({ status: "error", data: "token expired" });
-                // }
-                const useremail = user.instituteEmail;
-                // console.log(useremail)
-                userListCollection.findOne({ instituteEmail: useremail })
-                    .then((data) => {
-                        res.send({ status: "ok", data: data });
-                    })
-                    .catch((error) => {
-                        res.send({ status: "error", data: error });
-                    });
-            } catch (error) { }
         });
 
     } finally {

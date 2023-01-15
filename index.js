@@ -23,7 +23,7 @@ async function run() {
         const database = client.db("library_management_system");
         const booksCollection = database.collection("allbooksdata");
         /* admin collection starts*/
-        const noticeBoard = database.collection("noticeboard");
+        const noticeBoard = database.collection("noticeBoard");
         const adminaddBooksCollection = database.collection("addedBooksByAdmin");
         const addBooksCollection = database.collection("addBooks");
         const adminaddThesisCollection = database.collection("addedThesisByAdmin");
@@ -35,12 +35,30 @@ async function run() {
         const requestBookCollection = database.collection("requestBook");
         /* admin collection ends */
         // noticeboard
-        app.post("/noticeboard", async (req, res) => {
-        
-            const result = await noticeBoard.insertOne({notice:""});
-            res.json(result);
+        app.get("/noticeboard", async (req, res) => {
+            const cursor = noticeBoard.find({});
+            const result = await cursor.toArray();
+            res.send(result);
         });
 
+        // update notice
+        app.put('/updateNotice/:id', async (req, res) => {
+            const id = req.params.id
+            const query = req.body;
+            console.log(query)
+            const filter = {
+                _id: ObjectId(id)
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...query
+                },
+            };
+            const result = await noticeBoard.updateOne(filter, updateDoc, options);
+            console.log(result);
+            res.json(result)
+        });
 
 
         app.get("/allBooks", async (req, res) => {
@@ -332,6 +350,12 @@ async function run() {
             res.json({ message: 'we are receive your request', data: filtered_result });
         });
 
+        app.post("/addUser", async (req, res) => {
+            const admin = req.body;
+            const result = await userListCollection.insertOne(admin);
+            res.json(result);
+        });
+
         app.post("/addAdmin", async (req, res) => {
             const admin = req.body;
             const result = await adminListCollection.insertOne(admin);
@@ -503,8 +527,6 @@ async function run() {
             res.json(result)
         });
 
-
-
         // user my account ar nijer nijer requested issue books show
         app.get("/userData", async (req, res) => {
             const cursor = userListCollection.find({});
@@ -521,6 +543,7 @@ async function run() {
             console.log(result)
             res.send(result);
         });
+
         // admin login
         app.use("/admin/login", async (req, res, next) => {
             try {
@@ -537,11 +560,12 @@ async function run() {
 
                         // user object
                         const tokenObject = {
-                            name: user.FullName,
-                            InstituteId: user.InstituteId,
-                            Designation: user.Designation,
-                            instituteEmail: user.instituteEmail,
-                            presentAddress: user.presentAddress
+                            name: user[0].FullName,
+                            InstituteId: user[0].InstituteId,
+                            Designation: user[0].Designation,
+                            instituteEmail: user[0].instituteEmail,
+                            presentAddress: user[0].presentAddress,
+                            adminType: user[0].adminType
                         }
 
                         const token = jwt.sign({
@@ -550,8 +574,65 @@ async function run() {
                             expiresIn: '20000h'
                         });
 
+                        return res.status(200).json({
+                            success: {
+                                token,
+                                user: JSON.stringify(tokenObject)
+                            }
+                        });
 
+                    } else {
+                        return res.status(403).json({
+                            errors: {
+                                msg: "Invalid password",
+                                type: "password"
+                            }
+                        })
+                    }
 
+                } else {
+                    return res.status(403).json({
+                        errors: {
+                            msg: "Invalid user",
+                            type: "user"
+                        }
+                    })
+                }
+
+            } catch (err) {
+                return res.status(500).json({
+                    errors: {
+                        msg: "Internal server error"
+                    }
+                })
+            }
+
+        });
+        app.use("/user/login", async (req, res, next) => {
+            try {
+                const username = req.body.username;
+                console.log(req.body)
+                const pass = req.body.pass;
+                console.log(username);
+                console.log(pass);
+                const user = await userListCollection.find({ instituteEmail: username }).toArray();
+                console.log(user);
+                if (user.length > 0) {
+                    if (user[0].password === pass) {
+                        // user object
+                        const tokenObject = {
+                            name: user[0].fullName,
+                            instituteId: user[0].instituteId,
+                            userType: user[0].userType,
+                            instituteEmail: user[0].instituteEmail,
+                            presentAdd: user[0].presentAdd
+                        }
+                        console.log(tokenObject)
+                        const token = jwt.sign({
+                            data: tokenObject
+                        }, JWT_SECRET, {
+                            expiresIn: '20000h'
+                        });
                         return res.status(200).json({
                             success: {
                                 token
@@ -584,6 +665,31 @@ async function run() {
                 })
             }
 
+        });
+        app.post("/loginUserData", async (req, res) => {
+            const { token } = req.body;
+            try {
+                const user = jwt.verify(token, JWT_SECRET);
+                /* , (err, res) => {
+                    if (err) {
+                        return "token expired";
+                    }
+                    return res;
+                } */
+                // console.log(user);
+                // if (user == "token expired") {
+                //     return res.send({ status: "error", data: "token expired" });
+                // }
+                const useremail = user.instituteEmail;
+                // console.log(useremail)
+                userListCollection.findOne({ instituteEmail: useremail })
+                    .then((data) => {
+                        res.send({ status: "ok", data: data });
+                    })
+                    .catch((error) => {
+                        res.send({ status: "error", data: error });
+                    });
+            } catch (error) { }
         });
 
     } finally {

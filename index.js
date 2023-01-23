@@ -108,6 +108,50 @@ async function run() {
         });
 
 
+        /* user issue books */
+        // admin issue books collection
+        app.post("/userRequestForABook", async (req, res) => {
+            const books = req.body;
+            const result = await userissueBookCollection.insertOne(books);
+            res.json(result);
+        });
+
+
+        app.get("/userissuedBooks", async (req, res) => {
+            const cursor = userissueBookCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        // issuebooks fineone
+        app.get("/extendReturnDate/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await adminIssueBookCollection.findOne(query);
+            res.json(result);
+        });
+
+
+        // userIssueRequestForABook
+        // issuebooks fineone
+        app.get("/userIssueRequestForABook/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await userissueBookCollection.findOne(query);
+            res.json(result);
+        });
+
+        app.delete("/denyIssueReq/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await userissueBookCollection.deleteOne(query);
+            res.send(result);
+        });
+
+
+
+
+
 
 
         app.get("/allBooks", async (req, res) => {

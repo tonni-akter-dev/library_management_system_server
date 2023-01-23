@@ -106,6 +106,12 @@ async function run() {
             const result = await adminIssueBookCollection.deleteOne(query);
             res.send(result);
         });
+        app.delete("/returnUserBook/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await userissueBookCollection.deleteOne(query);
+            res.send(result);
+        });
 
 
         /* user issue books */

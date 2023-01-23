@@ -169,13 +169,14 @@ async function run() {
             const accessionNumber = req.body.accessionNumber;
             const tags = req.body.tags;
             const branch = req.body.branch;
-            const description = req.body.description;
+            const pageNumber = req.body.pageNumber;
+            const location = req.body.location;
             // const pic = req.files.image;
             // const picData = pic.data;
             // const encodedPic = picData.toString('base64');
             // const imageBuffer = Buffer.from(encodedPic, 'base64');
             const book = {
-                category, callNo, title, ISBN10, authors, publisher, edition, price, publicationYear, accessionNumber, tags, branch, description,
+                category, callNo, title, ISBN10, authors, publisher, edition, price, publicationYear, accessionNumber, tags, branch, location,pageNumber
 
             }
             const result = await booksCollection.insertOne(book);

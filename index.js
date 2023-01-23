@@ -27,36 +27,87 @@ async function run() {
         const adminaddThesisCollection = database.collection("addedThesisByAdmin");
         const adminListCollection = database.collection("addAdmin");
         const userListCollection = database.collection("addUser");
+        const adminIssueBookCollection = database.collection("adminIssueBooks");
+        const userissueBookCollection = database.collection("userIssueBooks");
         const issueBookCollection = database.collection("IssueBooks");
         const imageaddcollection = database.collection("imageadd");
         // added line for merge with main
         const requestBookCollection = database.collection("requestBook");
         /* admin collection ends */
-    // noticeboard
-    app.get("/noticeboard", async (req, res) => {
-        const cursor = noticeBoard.find({});
-        const result = await cursor.toArray();
-        res.send(result);
-    });
+        // noticeboard
+        app.get("/noticeboard", async (req, res) => {
+            const cursor = noticeBoard.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
 
-    // update notice
-    app.put('/updateNotice/:id', async (req, res) => {
-        const id = req.params.id
-        const query = req.body;
-        console.log(query)
-        const filter = {
-            _id: ObjectId(id)
-        };
-        const options = { upsert: true };
-        const updateDoc = {
-            $set: {
-                ...query
-            },
-        };
-        const result = await noticeBoard.updateOne(filter, updateDoc, options);
-        console.log(result);
-        res.json(result)
-    });
+        // update notice
+        app.put('/updateNotice/:id', async (req, res) => {
+            const id = req.params.id
+            const query = req.body;
+            console.log(query)
+            const filter = {
+                _id: ObjectId(id)
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...query
+                },
+            };
+            const result = await noticeBoard.updateOne(filter, updateDoc, options);
+            console.log(result);
+            res.json(result)
+        });
+
+        // admin issue books collection
+        app.post("/adminRequestForABook", async (req, res) => {
+            const books = req.body;
+            const result = await adminIssueBookCollection.insertOne(books);
+            res.json(result);
+        });
+
+
+        app.get("/adminissuedBooks", async (req, res) => {
+            const cursor = adminIssueBookCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        // issuebooks fineone
+        app.get("/extendReturnDate/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await adminIssueBookCollection.findOne(query);
+            res.json(result);
+        });
+
+
+        // update return date work
+        app.put('/issueBook/:id', async (req, res) => {
+            const id = req.params.id
+            const query = req.body;
+            const filter = {
+                _id: ObjectId(id)
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...query
+                },
+            };
+            const result = await adminIssueBookCollection.updateOne(filter, updateDoc, options);
+            res.json(result)
+        });
+        // if returned then delet from issue request list--------
+        app.delete("/returnBook/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await adminIssueBookCollection.deleteOne(query);
+            res.send(result);
+        });
+
+
 
 
         app.get("/allBooks", async (req, res) => {
@@ -176,7 +227,7 @@ async function run() {
             // const encodedPic = picData.toString('base64');
             // const imageBuffer = Buffer.from(encodedPic, 'base64');
             const book = {
-                category, callNo, title, ISBN10, authors, publisher, edition, price, publicationYear, accessionNumber, tags, branch, location,pageNumber
+                category, callNo, title, ISBN10, authors, publisher, edition, price, publicationYear, accessionNumber, tags, branch, location, pageNumber
 
             }
             const result = await booksCollection.insertOne(book);
@@ -422,13 +473,6 @@ async function run() {
 
 
 
-        // issuebooks fineone
-        app.get("/extendReturnDate/:id", async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const result = await issueBookCollection.findOne(query);
-            res.json(result);
-        });
         // app.get("/issueBook/:id", async (req, res) => {
         //     const id = req.params.id;
         //     const query = { _id: ObjectId(id) };
@@ -436,29 +480,6 @@ async function run() {
         //     res.json(result);
         // });
 
-        // update return date work
-        app.put('/issueBook/:id', async (req, res) => {
-            const id = req.params.id
-            const query = req.body;
-            const filter = {
-                _id: ObjectId(id)
-            };
-            const options = { upsert: true };
-            const updateDoc = {
-                $set: {
-                    ...query
-                },
-            };
-            const result = await issueBookCollection.updateOne(filter, updateDoc, options);
-            res.json(result)
-        });
-        // if returned then delet from issue request list--------
-        app.delete("/returnBook/:id", async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const result = await issueBookCollection.deleteOne(query);
-            res.send(result);
-        });
 
 
 
@@ -583,7 +604,7 @@ async function run() {
                             presentAddress: user[0].presentAddress,
                             adminType: user[0].adminType
                         }
-                       
+
                         const token = jwt.sign({
                             data: tokenObject
                         }, JWT_SECRET, {

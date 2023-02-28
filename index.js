@@ -153,13 +153,6 @@ async function run() {
             const result = await userissueBookCollection.deleteOne(query);
             res.send(result);
         });
-
-
-
-
-
-
-
         app.get("/allBooks", async (req, res) => {
             const cursor = booksCollection.find({});
             const result = await cursor.toArray();
